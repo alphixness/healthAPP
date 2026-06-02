@@ -1,0 +1,10 @@
+name = "health-app-api-proxy"
+main = "src/index.js"
+
+compatibility_date = "2025-01-01"
+
+[vars]
+# No vars needed - DEEPSEEK_API_KEY is set as a secret
+
+[[d1_databases]]
+# Not used yet, placeholder for future

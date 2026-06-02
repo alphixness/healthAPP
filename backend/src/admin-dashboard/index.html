@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HealthApp 管理后台</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; color: #333; }
+.login-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.login-card { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); width: 380px; }
+.login-card h1 { text-align: center; margin-bottom: 8px; font-size: 24px; color: #333; }
+.login-card p { text-align: center; color: #666; margin-bottom: 24px; font-size: 14px; }
+.login-card input { width: 100%; padding: 12px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 16px; transition: border-color 0.2s; }
+.login-card input:focus { outline: none; border-color: #667eea; }
+.login-card button { width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: opacity 0.2s; }
+.login-card button:hover { opacity: 0.9; }
+.login-error { color: #e74c3c; font-size: 13px; text-align: center; margin-bottom: 12px; display: none; }
+.app-header { background: white; padding: 16px 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+.app-header h1 { font-size: 18px; }
+.app-header .user-info { display: flex; align-items: center; gap: 12px; font-size: 14px; color: #666; }
+.app-header button { padding: 6px 16px; background: #e74c3c; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.app-content { max-width: 1200px; margin: 0 auto; padding: 24px; }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.stat-card .label { font-size: 13px; color: #888; margin-bottom: 4px; }
+.stat-card .value { font-size: 28px; font-weight: 700; color: #333; }
+.stat-card .sub { font-size: 12px; color: #999; margin-top: 4px; }
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.chart-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.chart-card h3 { font-size: 14px; color: #555; margin-bottom: 16px; }
+.tabs { display: flex; gap: 4px; background: white; border-radius: 10px; padding: 4px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.tab-btn { flex: 1; padding: 10px; border: none; background: transparent; border-radius: 8px; cursor: pointer; font-size: 14px; color: #666; transition: all 0.2s; }
+.tab-btn.active { background: #667eea; color: white; }
+.tab-btn:hover:not(.active) { background: #f5f5f5; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+table { width: 100%; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border-collapse: collapse; }
+th, td { padding: 12px 16px; text-align: left; font-size: 13px; }
+th { background: #fafafa; color: #666; font-weight: 600; }
+tr:not(:last-child) td { border-bottom: 1px solid #f0f0f0; }
+.status-badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+.status-badge.admin { background: #e8f5e9; color: #2e7d32; }
+.status-badge.user { background: #e3f2fd; color: #1565c0; }
+.btn-sm { padding: 4px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; margin: 0 2px; }
+.btn-sm.primary { background: #667eea; color: white; }
+.btn-sm.danger { background: #e74c3c; color: white; }
+.btn-sm:hover { opacity: 0.85; }
+.search-bar { display: flex; gap: 8px; margin-bottom: 16px; }
+.search-bar input { flex: 1; padding: 10px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+.search-bar button { padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; }
+.hidden { display: none !important; }
+@media (max-width: 768px) {
+  .charts-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .app-content { padding: 12px; }
+}
+</style>
+</head>
+<body>
+<div id="loginPage" class="login-container">
+  <div class="login-card">
+    <h1>HealthApp 管理后台</h1>
+    <p>请登录管理员账号</p>
+    <div id="loginError" class="login-error"></div>
+    <input type="email" id="loginEmail" placeholder="admin@healthapp.com" value="admin@healthapp.com">
+    <input type="password" id="loginPassword" placeholder="密码" value="admin123">
+    <button onclick="handleLogin()">登录</button>
+  </div>
+</div>
+
+<div id="appPage" class="hidden">
+  <div class="app-header">
+    <h1>HealthApp 管理后台</h1>
+    <div class="user-info">
+      <span id="userDisplay"></span>
+      <button onclick="handleLogout()">退出登录</button>
+    </div>
+  </div>
+  <div class="app-content">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('overview', this)">概览</button>
+      <button class="tab-btn" onclick="switchTab('users', this)">用户管理</button>
+      <button class="tab-btn" onclick="switchTab('recipes', this)">食谱管理</button>
+    </div>
+
+    <div id="tabOverview" class="tab-content active">
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card"><div class="label">总用户数</div><div class="value" id="statUsers">-</div></div>
+        <div class="stat-card"><div class="label">今日新增</div><div class="value" id="statNewUsers">-</div></div>
+        <div class="stat-card"><div class="label">今日活跃</div><div class="value" id="statActive">-</div></div>
+        <div class="stat-card"><div class="label">饮食记录</div><div class="value" id="statMeals">-</div></div>
+        <div class="stat-card"><div class="label">运动记录</div><div class="value" id="statExercises">-</div></div>
+        <div class="stat-card"><div class="label">食谱总数</div><div class="value" id="statRecipes">-</div></div>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-card"><h3>用户目标分布</h3><canvas id="goalChart"></canvas></div>
+        <div class="chart-card"><h3>饮食类型分布</h3><canvas id="mealChart"></canvas></div>
+      </div>
+    </div>
+
+    <div id="tabUsers" class="tab-content">
+      <div class="search-bar">
+        <input type="text" id="userSearch" placeholder="搜索邮箱、手机号或昵称..." onkeyup="if(event.key==='Enter')loadUsers()">
+        <button onclick="loadUsers()">搜索</button>
+      </div>
+      <table><thead><tr><th>ID</th><th>邮箱</th><th>手机</th><th>昵称</th><th>角色</th><th>注册时间</th><th>操作</th></tr></thead><tbody id="usersTableBody"></tbody></table>
+      <div style="margin-top:12px;text-align:center;font-size:13px;color:#999" id="usersPagination"></div>
+    </div>
+
+    <div id="tabRecipes" class="tab-content">
+      <table><thead><tr><th>名称</th><th>分类</th><th>热量</th><th>难度</th><th>烹饪时间</th><th>创建时间</th></tr></thead><tbody id="recipesTableBody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<script>
+let token = localStorage.getItem('adminToken');
+let goalChartInstance = null;
+let mealChartInstance = null;
+
+function showLoginError(msg) {
+  const el = document.getElementById('loginError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function handleLogin() {
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  if (!email || !password) { showLoginError('请填写邮箱和密码'); return; }
+
+  try {
+    const res = await fetch('/api/v1/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!data.success) { showLoginError(data.error); return; }
+
+    token = data.data.accessToken;
+    localStorage.setItem('adminToken', token);
+    document.getElementById('loginPage').classList.add('hidden');
+    document.getElementById('appPage').classList.remove('hidden');
+    document.getElementById('userDisplay').textContent = data.data.user.email;
+    loadDashboard();
+  } catch (e) {
+    showLoginError('网络错误，请检查服务器连接');
+  }
+}
+
+function handleLogout() {
+  localStorage.removeItem('adminToken');
+  token = null;
+  document.getElementById('appPage').classList.add('hidden');
+  document.getElementById('loginPage').classList.remove('hidden');
+}
+
+async function apiCall(path, options = {}) {
+  const res = await fetch(path, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
+  });
+  const data = await res.json();
+  if (!data.success && res.status === 401) {
+    handleLogout();
+    throw new Error('登录已过期');
+  }
+  return data;
+}
+
+async function loadDashboard() {
+  try {
+    const stats = await apiCall('/api/v1/admin/stats');
+    const d = stats.data;
+    document.getElementById('statUsers').textContent = d.totalUsers;
+    document.getElementById('statNewUsers').textContent = d.newUsersToday;
+    document.getElementById('statActive').textContent = d.activeUsersToday;
+    document.getElementById('statMeals').textContent = d.totalMeals;
+    document.getElementById('statExercises').textContent = d.totalExercises;
+    document.getElementById('statRecipes').textContent = d.totalRecipes;
+
+    // Goal chart
+    if (goalChartInstance) goalChartInstance.destroy();
+    const goalCtx = document.getElementById('goalChart').getContext('2d');
+    const goalLabels = { lose: '减脂', maintain: '维持', gain: '增肌' };
+    goalChartInstance = new Chart(goalCtx, {
+      type: 'doughnut',
+      data: {
+        labels: (d.usersByGoal || []).map((g: any) => goalLabels[g.goal as keyof typeof goalLabels] || g.goal),
+        datasets: [{ data: (d.usersByGoal || []).map((g: any) => g.count), backgroundColor: ['#e74c3c', '#3498db', '#2ecc71'] }],
+      },
+      options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
+    });
+
+    // Meal chart
+    if (mealChartInstance) mealChartInstance.destroy();
+    const mealCtx = document.getElementById('mealChart').getContext('2d');
+    const mealLabels: Record<string, string> = { breakfast: '早餐', lunch: '午餐', dinner: '晚餐', snack: '加餐' };
+    mealChartInstance = new Chart(mealCtx, {
+      type: 'bar',
+      data: {
+        labels: (d.mealsByType || []).map((m: any) => mealLabels[m.meal_type] || m.meal_type),
+        datasets: [{ label: '记录数', data: (d.mealsByType || []).map((m: any) => m.count), backgroundColor: '#667eea' }],
+      },
+      options: { responsive: true, plugins: { legend: { display: false } } },
+    });
+  } catch (e) { console.error('Dashboard error:', e); }
+}
+
+let usersPage = 1;
+async function loadUsers() {
+  try {
+    const search = (document.getElementById('userSearch') as HTMLInputElement).value;
+    const result = await apiCall(`/api/v1/admin/users?page=${usersPage}&limit=20&search=${encodeURIComponent(search)}`);
+    const d = result.data;
+    const meta = result.meta;
+
+    const tbody = document.getElementById('usersTableBody');
+    tbody.innerHTML = d.map((u: any) => `<tr>
+      <td style="font-family:monospace;font-size:11px">${u.id.slice(0,8)}...</td>
+      <td>${u.email || '-'}</td>
+      <td>${u.phone || '-'}</td>
+      <td>${u.nickname || '-'}</td>
+      <td><span class="status-badge ${u.role}">${u.role === 'admin' ? '管理员' : '用户'}</span></td>
+      <td style="font-size:12px;color:#999">${new Date(u.created_at).toLocaleDateString()}</td>
+      <td>
+        <button class="btn-sm ${u.role === 'admin' ? 'primary' : 'danger'}" onclick="toggleRole('${u.id}', '${u.role === 'admin' ? 'user' : 'admin'}')">
+          ${u.role === 'admin' ? '降级为用户' : '提升为管理员'}
+        </button>
+      </td>
+    </tr>`).join('');
+
+    const totalPages = Math.ceil(meta.total / meta.limit);
+    document.getElementById('usersPagination').textContent = `共 ${meta.total} 条，第 ${meta.page}/${totalPages} 页`;
+  } catch (e) { console.error('Users load error:', e); }
+}
+
+async function toggleRole(userId: string, newRole: string) {
+  if (!confirm(`确认${newRole === 'admin' ? '提升' : '降级'}该用户？`)) return;
+  try {
+    await apiCall(`/api/v1/admin/users/${userId}/role`, {
+      method: 'PUT',
+      body: JSON.stringify({ role: newRole }),
+    });
+    loadUsers();
+  } catch (e) { console.error('Role toggle error:', e); }
+}
+
+async function loadRecipes() {
+  try {
+    const result = await apiCall('/api/v1/admin/recipes?limit=50');
+    const d = result.data;
+    document.getElementById('recipesTableBody').innerHTML = d.map((r: any) => `<tr>
+      <td>${r.cover_emoji || '🍽️'} ${r.name}</td>
+      <td>${r.category}</td>
+      <td>${r.calories}千卡</td>
+      <td>${r.difficulty === 'easy' ? '简单' : r.difficulty === 'medium' ? '中等' : '困难'}</td>
+      <td>${r.cook_time}分钟</td>
+      <td style="font-size:12px;color:#999">${new Date(r.created_at).toLocaleDateString()}</td>
+    </tr>`).join('');
+  } catch (e) { console.error('Recipes load error:', e); }
+}
+
+function switchTab(tab: string, btn: any) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  btn.classList.add('active');
+  if (tab === 'users') loadUsers();
+  if (tab === 'recipes') loadRecipes();
+}
+
+// Auto-login if token exists
+if (token) {
+  document.getElementById('loginPage').classList.add('hidden');
+  document.getElementById('appPage').classList.remove('hidden');
+  loadDashboard();
+}
+</script>
+</body>
+</html>

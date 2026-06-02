@@ -1,0 +1,17 @@
+# Root .gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.trae/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude
+.claude/
+.codegraph/
