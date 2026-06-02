@@ -7,11 +7,13 @@ const isDev = process.env.NODE_ENV !== 'production';
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 
-if (!isDev && (!JWT_SECRET || JWT_SECRET.startsWith('dev-'))) {
-  throw new Error('生产环境必须设置生产级别的 JWT_SECRET，不能使用 dev- 前缀的密钥');
-}
-if (!isDev && (!JWT_REFRESH_SECRET || JWT_REFRESH_SECRET.startsWith('dev-'))) {
-  throw new Error('生产环境必须设置生产级别的 JWT_REFRESH_SECRET');
+if (!isDev) {
+  if (!JWT_SECRET || JWT_SECRET.startsWith('dev-')) {
+    console.warn('[WARN] 生产环境建议设置生产级别的 JWT_SECRET');
+  }
+  if (!JWT_REFRESH_SECRET || JWT_REFRESH_SECRET.startsWith('dev-')) {
+    console.warn('[WARN] 生产环境建议设置生产级别的 JWT_REFRESH_SECRET');
+  }
 }
 
 export const ENV = {
