@@ -11,4 +11,5 @@ COPY backend/ ./
 
 EXPOSE 3001
 
+# Start via tsx for TypeScript runtime support
 CMD ["npm", "run", "start"]
